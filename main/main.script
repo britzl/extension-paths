@@ -1,0 +1,8 @@
+function init(self)
+	self.bundle_path = paths.bundle_path()
+end
+
+
+function update(self, dt)
+	msg.post("@render:", "draw_text", { text = self.bundle_path, position = vmath.vector3(10, 20, 0) })
+end

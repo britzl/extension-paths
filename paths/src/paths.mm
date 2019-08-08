@@ -2,7 +2,7 @@
 #include "paths.h"
 #import <Foundation/Foundation.h>
 
-int Platform_BundlePath(char* bundle_path_out, uint32_t path_len)
+int Platform_ApplicationPath(char* path_out, uint32_t path_len)
 {
 	assert(path_len > 0);
 	NSBundle* mainBundle = [NSBundle mainBundle];
@@ -11,9 +11,9 @@ int Platform_BundlePath(char* bundle_path_out, uint32_t path_len)
 		return 0;
 	}
 	const char *bundle_path = [[mainBundle bundlePath] UTF8String];
-	if (dmStrlCpy(bundle_path_out, bundle_path, path_len) >= path_len)
+	if (dmStrlCpy(path_out, bundle_path, path_len) >= path_len)
 	{
-		bundle_path_out[0] = 0;
+		path_out[0] = 0;
 		return 0;
 	}
 	return 1;

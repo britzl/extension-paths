@@ -26,31 +26,31 @@
 #include <sys/auxv.h> // getauxval
 #include <libgen.h> // dirname
 
-int Platform_BundlePath(char* bundle_path_out, uint32_t path_len)
+int Platform_ApplicationPath(char* path_out, uint32_t path_len)
 {
-    ssize_t ret = readlink("/proc/self/exe", bundle_path_out, path_len);
+    ssize_t ret = readlink("/proc/self/exe", path_out, path_len);
     if (ret < 0 || ret > path_len)
     {
         const char* relative_path = (const char*)getauxval(AT_EXECFN); // Pathname used to execute program
         if (!relative_path)
         {
-            bundle_path_out[0] = '.';
-            bundle_path_out[1] = '\n';
+            path_out[0] = '.';
+            path_out[1] = '\n';
         }
         else
         {
             char *absolute_path = realpath(relative_path, NULL); // realpath() resolve a pathname
             if (!absolute_path)
             {
-                bundle_path_out[0] = '.';
-                bundle_path_out[1] = '\n';
+                path_out[0] = '.';
+                path_out[1] = '\n';
             }
             else
             {
-                if (dmStrlCpy(bundle_path_out, dirname(absolute_path), path_len) >= path_len) // dirname() returns the string up to, but not including, the final '/'
+                if (dmStrlCpy(path_out, dirname(absolute_path), path_len) >= path_len) // dirname() returns the string up to, but not including, the final '/'
                 {
-                    bundle_path_out[0] = '.';
-                    bundle_path_out[1] = '\n';
+                    path_out[0] = '.';
+                    path_out[1] = '\n';
                 }
                 free(absolute_path);
             }
@@ -69,7 +69,7 @@ int Platform_BundlePath(char* bundle_path_out, uint32_t path_len)
 
 #include <emscripten.h>
 
-int Platform_BundlePath(char* bundle_path_out, uint32_t path_len)
+int Platform_ApplicationPath(char* path_out, uint32_t path_len)
 {
     char* bundlePath = (char*)EM_ASM_INT({
         var jsString = location.href.substring(0, location.href.lastIndexOf("/"));
@@ -79,9 +79,9 @@ int Platform_BundlePath(char* bundle_path_out, uint32_t path_len)
         return stringOnWasmHeap;
     },0);
 
-    if (dmStrlCpy(bundle_path_out, bundlePath, path_len) >= path_len)
+    if (dmStrlCpy(path_out, bundlePath, path_len) >= path_len)
     {
-        bundle_path_out[0] = 0;
+        path_out[0] = 0;
         return 0;
     }
     return 1;
@@ -93,19 +93,19 @@ int Platform_BundlePath(char* bundle_path_out, uint32_t path_len)
  */
 #elif defined(DM_PLATFORM_WINDOWS)
 
-int Platform_BundlePath(char* bundle_path_out, uint32_t path_len)
+int Platform_ApplicationPath(char* path_out, uint32_t path_len)
 {
     assert(path_len > 0);
     assert(path_len >= MAX_PATH);
-    size_t ret = GetModuleFileNameA(GetModuleHandle(NULL), bundle_path_out, path_len);
+    size_t ret = GetModuleFileNameA(GetModuleHandle(NULL), path_out, path_len);
     if (ret > 0 && ret < path_len) {
-        size_t i = strlen(bundle_path_out);
+        size_t i = strlen(path_out);
         do
         {
             i -= 1;
-            if (path[i] == '\\')
+            if (path_out[i] == '\\')
             {
-                path[i] = 0;
+                path_out[i] = 0;
                 break;
             }
         }
@@ -113,8 +113,8 @@ int Platform_BundlePath(char* bundle_path_out, uint32_t path_len)
     }
     else
     {
-        bundle_path_out[0] = '.';
-        bundle_path_out[1] = '\n';
+        path_out[0] = '.';
+        path_out[1] = '\n';
     }
     return 1;
 }
@@ -125,10 +125,9 @@ int Platform_BundlePath(char* bundle_path_out, uint32_t path_len)
  */
 #elif defined(DM_PLATFORM_ANDROID)
 
-int Platform_BundlePath(char* bundle_path_out, uint32_t path_len)
+int Platform_ApplicationPath(char* path_out, uint32_t path_len)
 {
     struct android_app* app = dmGraphics::GetNativeAndroidApp();
-    //ANativeActivity* activity = g_AndroidApp->activity;
     ANativeActivity* activity = app->activity;
     JNIEnv* env = 0;
     activity->vm->AttachCurrentThread( &env, 0);
@@ -145,7 +144,7 @@ int Platform_BundlePath(char* bundle_path_out, uint32_t path_len)
     if (path_obj) {
         const char* filesDir = env->GetStringUTFChars(path_obj, NULL);
 
-        if (dmStrlCpy(bundle_path_out, filesDir, path_len) >= path_len) {
+        if (dmStrlCpy(path_out, filesDir, path_len) >= path_len) {
             res = 0;
         }
         env->ReleaseStringUTFChars(path_obj, filesDir);
@@ -163,17 +162,17 @@ int Platform_BundlePath(char* bundle_path_out, uint32_t path_len)
 
 
 
-static int BundlePath(lua_State* L)
+static int ApplicationPath(lua_State* L)
 {
     DM_LUA_STACK_CHECK(L, 1);
 
-    char bundle_path[4096 + 2]; // Linux PATH_MAX is defined to 4096. Windows MAX_PATH is 260.
-    int r = Platform_BundlePath(bundle_path, sizeof(bundle_path));
+    char application_path[4096 + 2]; // Linux PATH_MAX is defined to 4096. Windows MAX_PATH is 260.
+    int r = Platform_ApplicationPath(application_path, sizeof(application_path));
     if (r != 1)
     {
-        luaL_error(L, "Unable to locate application bundle path: (%d)", r);
+        luaL_error(L, "Unable to locate application path: (%d)", r);
     }
-    lua_pushstring(L, bundle_path);
+    lua_pushstring(L, application_path);
 
     return 1;
 }
@@ -182,7 +181,7 @@ static int BundlePath(lua_State* L)
 
 static const luaL_reg Module_methods[] =
 {
-    {"bundle_path", BundlePath},
+    {"application", ApplicationPath},
     {0, 0}
 };
 

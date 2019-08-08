@@ -1,8 +1,8 @@
 function init(self)
-	self.bundle_path = paths.bundle_path()
+	self.application_path = paths.application()
 end
 
 
 function update(self, dt)
-	msg.post("@render:", "draw_text", { text = self.bundle_path, position = vmath.vector3(10, 20, 0) })
+	msg.post("@render:", "draw_text", { text = self.application_path, position = vmath.vector3(10, 20, 0) })
 end

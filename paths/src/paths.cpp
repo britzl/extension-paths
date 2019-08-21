@@ -69,17 +69,13 @@ int Platform_ApplicationPath(char* path_out, uint32_t path_len)
 
 #include <emscripten.h>
 
+// Implemented in paths.js
+extern "C" const char* PlatformJS_GetApplicationPath();
+
 int Platform_ApplicationPath(char* path_out, uint32_t path_len)
 {
-    char* bundlePath = (char*)EM_ASM_INT({
-        var jsString = location.href.substring(0, location.href.lastIndexOf("/"));
-        var lengthBytes = lengthBytesUTF8(jsString)+1; // 'jsString.length' would return the length of the string as UTF-16 units, but Emscripten C strings operate as UTF-8.
-        var stringOnWasmHeap = _malloc(lengthBytes);
-        stringToUTF8(jsString, stringOnWasmHeap, lengthBytes+1);
-        return stringOnWasmHeap;
-    },0);
-
-    if (dmStrlCpy(path_out, bundlePath, path_len) >= path_len)
+    const char* applicationPath = PlatformJS_GetApplicationPath();
+    if (dmStrlCpy(path_out, applicationPath, path_len) >= path_len)
     {
         path_out[0] = 0;
         return 0;

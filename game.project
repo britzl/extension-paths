@@ -22,7 +22,7 @@ shared_state = 1
 bundle_identifier = com.britzl.defold.paths
 
 [library]
-include_dirs = vibrate
+include_dirs = paths
 
 [android]
 package = com.britzl.defold.paths
